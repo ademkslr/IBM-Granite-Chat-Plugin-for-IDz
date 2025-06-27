@@ -1,0 +1,16 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Myidzview
+Bundle-SymbolicName: com.example.myidzview;singleton:=true
+Bundle-Version: 1.0.0
+Bundle-Vendor: EXAMPLE
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ org.eclipse.ui,
+ org.eclipse.core.runtime
+Bundle-RequiredExecutionEnvironment: JavaSE-11
+Automatic-Module-Name: com.example.myidzview
+Import-Package: javax.inject
+Bundle-ActivationPolicy: lazy
+Bundle-ClassPath: lib/json-20231013.jar,
+ .
