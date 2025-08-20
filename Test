@@ -3,27 +3,21 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 # --------------------- Einstellungen (anpassbar) ---------------------
-# Standard-Quellordner mit ZIPs (Default: Ordner "Installers" neben diesem Script)
 $ScriptRoot   = Split-Path -Parent $MyInvocation.MyCommand.Path
 $DefaultSrc   = Join-Path $ScriptRoot 'Installers'
-
-# Standard-Zielbasis (nutzeranpassbar in der GUI)
 $DefaultTargetBase = Join-Path $env:LOCALAPPDATA 'IDz'
 
-# Startmenü (aktueller Benutzer – vermeidet Admin-Rechte)
 $StartMenuPrograms = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'
 $StartMenuFolder   = Join-Path $StartMenuPrograms 'IDz'
 $ShortcutPath      = Join-Path $StartMenuFolder 'IDz.lnk'
 
-# Welche EXE soll verlinkt werden? (Muster – wir suchen rekursiv danach)
-$ExeNamePattern = 'idz*.exe'  # ggf. anpassen, falls anders benannt
+$ExeNamePattern = 'idz*.exe'
 
 # --------------------- Hilfsfunktionen ---------------------
 function Write-Log {
     param([string]$Message)
     $ts = (Get-Date).ToString('HH:mm:ss')
-    $msg = "[$ts] $Message"
-    $Global:txtLog.AppendText($msg + [Environment]::NewLine)
+    $Global:txtLog.AppendText("[$ts] $Message$([Environment]::NewLine)")
 }
 
 function Get-ZipList {
@@ -34,10 +28,7 @@ function Get-ZipList {
 
 function Parse-VersionFromFileName {
     param([string]$FileName)
-    # Versucht, eine sinnvolle "Version" aus dem Dateinamen zu extrahieren
-    # Beispiele: IDz_3.1.0.zip -> 3.1.0   |  IDz-3.2.zip -> 3.2
     if ($FileName -match '(\d+(?:\.\d+){0,3})') { return $Matches[1] }
-    # Fallback: Dateiname ohne .zip
     return [IO.Path]::GetFileNameWithoutExtension($FileName)
 }
 
@@ -50,9 +41,7 @@ function Test-Installed {
 }
 
 function Ensure-StartMenuShortcut {
-    param(
-        [Parameter(Mandatory)] [string]$ExePath
-    )
+    param([Parameter(Mandatory)] [string]$ExePath)
     if (-not (Test-Path $StartMenuFolder)) {
         New-Item -ItemType Directory -Path $StartMenuFolder -Force | Out-Null
     }
@@ -97,11 +86,11 @@ function Find-ExeInFolder {
 }
 
 # --------------------- GUI erstellen ---------------------
-$form                  = New-Object System.Windows.Forms.Form
-$form.Text             = "IDz Installer"
-$form.StartPosition    = 'CenterScreen'
-$form.Size             = New-Object System.Drawing.Size(720, 520)
-$form.Topmost          = $false
+$form               = New-Object System.Windows.Forms.Form
+$form.Text          = "IDz Installer"
+$form.StartPosition = 'CenterScreen'
+$form.Size          = New-Object System.Drawing.Size(720, 520)
+$form.Topmost       = $false
 
 $lblSrc                = New-Object System.Windows.Forms.Label
 $lblSrc.Text           = "Quellordner (ZIP-Dateien):"
@@ -111,7 +100,9 @@ $lblSrc.AutoSize       = $true
 $txtSrc                = New-Object System.Windows.Forms.TextBox
 $txtSrc.Location       = New-Object System.Drawing.Point(18, 35)
 $txtSrc.Size           = New-Object System.Drawing.Size(560, 22)
-$txtSrc.Text           = (Test-Path $DefaultSrc) ? $DefaultSrc : $ScriptRoot
+# <-- statt (Test-Path ... ) ? ... :
+$txtSrc.Text = $ScriptRoot
+if (Test-Path $DefaultSrc) { $txtSrc.Text = $DefaultSrc }
 
 $btnBrowseSrc          = New-Object System.Windows.Forms.Button
 $btnBrowseSrc.Text     = "Durchsuchen..."
@@ -123,10 +114,10 @@ $lblZip.Text           = "Version / Paket (aus ZIPs):"
 $lblZip.Location       = New-Object System.Drawing.Point(15, 70)
 $lblZip.AutoSize       = $true
 
-$cmbZip                = New-Object System.Windows.Forms.ComboBox
-$cmbZip.DropDownStyle  = 'DropDownList'
-$cmbZip.Location       = New-Object System.Drawing.Point(18, 90)
-$cmbZip.Size           = New-Object System.Drawing.Size(560, 22)
+$cmbZip               = New-Object System.Windows.Forms.ComboBox
+$cmbZip.DropDownStyle = 'DropDownList'
+$cmbZip.Location      = New-Object System.Drawing.Point(18, 90)
+$cmbZip.Size          = New-Object System.Drawing.Size(560, 22)
 
 $btnRefresh            = New-Object System.Windows.Forms.Button
 $btnRefresh.Text       = "Aktualisieren"
@@ -143,10 +134,10 @@ $txtTarget.Location    = New-Object System.Drawing.Point(18, 145)
 $txtTarget.Size        = New-Object System.Drawing.Size(560, 22)
 $txtTarget.Text        = $DefaultTargetBase
 
-$btnBrowseTarget       = New-Object System.Windows.Forms.Button
-$btnBrowseTarget.Text  = "Durchsuchen..."
+$btnBrowseTarget          = New-Object System.Windows.Forms.Button
+$btnBrowseTarget.Text     = "Durchsuchen..."
 $btnBrowseTarget.Location = New-Object System.Drawing.Point(585, 143)
-$btnBrowseTarget.Size  = New-Object System.Drawing.Size(110, 26)
+$btnBrowseTarget.Size     = New-Object System.Drawing.Size(110, 26)
 
 $lblStatus             = New-Object System.Windows.Forms.Label
 $lblStatus.Text        = "Status: —"
@@ -178,8 +169,7 @@ function Refresh-ZipList {
     $cmbZip.Items.Clear()
     $zips = Get-ZipList -Folder $txtSrc.Text
     foreach ($z in $zips) { [void]$cmbZip.Items.Add($z.Name) }
-    if ($cmbZip.Items.Count -gt 0) { $cmbZip.SelectedIndex = 0 }
-    else { Write-Log "Keine ZIP-Dateien in: $($txtSrc.Text)" }
+    if ($cmbZip.Items.Count -gt 0) { $cmbZip.SelectedIndex = 0 } else { Write-Log "Keine ZIP-Dateien in: $($txtSrc.Text)" }
 }
 
 function Update-Status {
@@ -202,7 +192,7 @@ function Update-Status {
 # Events
 $btnBrowseSrc.Add_Click({
     $fbd = New-Object System.Windows.Forms.FolderBrowserDialog
-    $fbd.SelectedPath = (Test-Path $txtSrc.Text) ? $txtSrc.Text : $ScriptRoot
+    if (Test-Path $txtSrc.Text) { $fbd.SelectedPath = $txtSrc.Text } else { $fbd.SelectedPath = $ScriptRoot }
     if ($fbd.ShowDialog() -eq 'OK') {
         $txtSrc.Text = $fbd.SelectedPath
         Refresh-ZipList
@@ -213,7 +203,7 @@ $btnRefresh.Add_Click({ Refresh-ZipList })
 
 $btnBrowseTarget.Add_Click({
     $fbd = New-Object System.Windows.Forms.FolderBrowserDialog
-    $fbd.SelectedPath = (Test-Path $txtTarget.Text) ? $txtTarget.Text : $DefaultTargetBase
+    if (Test-Path $txtTarget.Text) { $fbd.SelectedPath = $txtTarget.Text } else { $fbd.SelectedPath = $DefaultTargetBase }
     if ($fbd.ShowDialog() -eq 'OK') {
         $txtTarget.Text = $fbd.SelectedPath
         Update-Status
@@ -221,7 +211,6 @@ $btnBrowseTarget.Add_Click({
 })
 
 $cmbZip.Add_SelectedIndexChanged({
-    # Optional: Zielpfad automatisch an Version anpassen
     if ($cmbZip.SelectedItem) {
         $ver = Parse-VersionFromFileName -FileName $cmbZip.SelectedItem
         $txtTarget.Text = Join-Path $DefaultTargetBase $ver
@@ -235,14 +224,14 @@ $btnInstall.Add_Click({
     try {
         $txtLog.Clear()
         if (-not $cmbZip.SelectedItem) { throw "Bitte zunächst ein ZIP auswählen." }
-        $zipName   = [string]$cmbZip.SelectedItem
-        $zipPath   = Join-Path $txtSrc.Text $zipName
+        $zipName = [string]$cmbZip.SelectedItem
+        $zipPath = Join-Path $txtSrc.Text $zipName
         if (-not (Test-Path $zipPath)) { throw "ZIP nicht gefunden: $zipPath" }
 
-        $target    = $txtTarget.Text
+        $target = $txtTarget.Text
         if ([string]::IsNullOrWhiteSpace($target)) { throw "Zielordner ist leer." }
 
-        $force     = $chkOverwrite.Checked
+        $force = $chkOverwrite.Checked
 
         Write-Log "Ausgewähltes Paket: $zipName"
         Write-Log "Zielordner: $target"
@@ -250,7 +239,6 @@ $btnInstall.Add_Click({
 
         Extract-Zip -ZipPath $zipPath -TargetPath $target -Force:$force
 
-        # EXE suchen
         $exe = Find-ExeInFolder -Folder $target
         if (-not $exe) {
             Write-Log "WARNUNG: Keine EXE mit Muster '$ExeNamePattern' gefunden."
@@ -277,9 +265,6 @@ $form.Controls.AddRange(@(
     $txtLog
 ))
 
-# Initialbefüllung
 Refresh-ZipList
 Update-Status
-
-# Anzeigen
 [void]$form.ShowDialog()
